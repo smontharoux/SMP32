@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -94,9 +94,9 @@
         <p>Félicitations, énigme résolue.</p>
     </div>
 
-    <!-- 4. SCÈNE AR MINDAR -->
-    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 500;">
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <!-- 4. SCÈNE AR MINDAR (Sans attributs superflus qui bloquent l'affichage) -->
+    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 500;">
+        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
         
         <!-- Cible 0 -->
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
@@ -108,12 +108,9 @@
 
     <script>
         const SECRET_CODE = "V59A2K"; 
-
         const TARGET_LAT = 45.5077421; 
         const TARGET_LNG = 4.7344563;
         const MAX_DISTANCE_METERS = 50; 
-
-        let arSystem = null;
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
@@ -131,7 +128,7 @@
             const statusMsg = document.getElementById("gps-status");
             statusMsg.innerText = "Recherche GPS...";
 
-            // ASTUCE DE TEST RAPIDE : Décommentez la ligne suivante pour tester chez vous sans GPS
+            // ASTUCE DE TEST RAPIDE : Décommentez la ligne suivante si vous voulez tester directement chez vous sans bouger
             // startARScanner(); return;
 
             if (!navigator.geolocation) {
@@ -158,20 +155,11 @@
         }
 
         function startARScanner() {
+            // Masquer l'écran GPS et afficher la scène AR nativement
             document.getElementById("gps-screen").style.display = "none";
-            const sceneEl = document.getElementById("ar-scene");
-            sceneEl.style.display = "block";
-            
-            // Suppression radicale de l'interface Cardboard si elle s'injecte dynamiquement
-            const vrButton = document.querySelector('.a-enter-vr');
-            if (vrButton) vrButton.style.display = 'none';
+            document.getElementById("ar-scene").style.display = "block";
 
-            arSystem = sceneEl.systems["mindar-image-system"];
-            
-            sceneEl.addEventListener('render-target-ready', () => {
-                arSystem.start();
-            });
-
+            // Écouter la reconnaissance de la cible image
             const targetEl = document.getElementById("ar-target");
             targetEl.addEventListener("targetFound", event => {
                 console.log("Cible reconnue !");
@@ -180,8 +168,7 @@
         }
 
         function freezeAndSwitchToValidation() {
-            if (!arSystem) return;
-            arSystem.stop();
+            // Masquer la scène AR pour couper la caméra et basculer sur l'écran fixe
             document.getElementById("ar-scene").style.display = "none";
             document.getElementById("revealed-code-display").innerText = SECRET_CODE;
             document.getElementById("validation-screen").style.display = "flex";
