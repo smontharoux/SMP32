@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jeu d'Enquête - RA Figée pour Saisie</title>
+    <title>Jeu d'Enquête - RA Sécurisée</title>
     
     <!-- A-Frame et MindAR via CDN -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -17,7 +17,6 @@
             background: #000;
         }
 
-        /* --- ÉCRANS UI (GPS, VALIDATION, SUCCÈS) --- */
         .ui-screen {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -28,33 +27,28 @@
             box-sizing: border-box;
         }
 
-        /* --- ÉCRAN DE SAISIE FIXE (Apparaît après scan) --- */
         #validation-screen {
             background: #1a1a1a;
-            display: none; /* Caché par défaut */
+            display: none;
         }
 
         .code-revealed {
             font-size: 3em;
             font-weight: bold;
-            color: #d4ac0d; /* Doré */
+            color: #d4ac0d;
             letter-spacing: 5px;
             margin: 20px 0;
             padding: 10px 20px;
             border: 2px solid #d4ac0d;
             background: rgba(212, 172, 13, 0.1);
             border-radius: 8px;
-            text-shadow: 0 0 10px rgba(212, 172, 13, 0.5);
         }
 
-        /* --- ÉLÉMENTS COMMUNS --- */
         .btn {
             background: #d4ac0d; color: #111111;
             border: none; padding: 15px 30px;
             font-size: 18px; border-radius: 8px;
             cursor: pointer; font-weight: bold;
-            transition: background 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         .btn:hover { background: #b7950b; }
 
@@ -65,75 +59,62 @@
             text-transform: uppercase; letter-spacing: 2px;
             background: #222; color: #fff; margin-bottom: 20px;
         }
-        input[type="text"]:focus { border-color: #d4ac0d; outline: none; }
 
         .status-msg { margin-top: 15px; font-size: 15px; color: #f39c12; font-weight: bold; }
         .error { color: #e74c3c !important; }
         .success { color: #2ecc71 !important; }
-
-        p { color: #ccc; line-height: 1.5; margin: 5px 0 15px 0; }
-        h2 { margin-top: 0; color: #fff; }
-
+        p { color: #ccc; line-height: 1.5; }
     </style>
 </head>
 <body>
 
-    <!-- 1. ÉCRAN GPS INITIAL -->
+    <!-- 1. ÉCRAN GPS -->
     <div id="gps-screen" class="ui-screen">
         <h2>🔒 Zone Sécurisée</h2>
-        <p>Rendez-vous sur place pour valider votre position GPS et activer le scanner AR.</p>
+        <p>Validez votre position GPS pour lancer le scanner de terrain.</p>
         <button class="btn" onclick="verifyLocation()">Valider ma position</button>
         <div id="gps-status" class="status-msg"></div>
     </div>
 
-    <!-- 2. ÉCRAN DE SAISIE FIXE (Apparaît une fois scanné) -->
+    <!-- 2. ÉCRAN DE SAISIE FIXE -->
     <div id="validation-screen" class="ui-screen">
         <h2>🔍 Code Révélé</h2>
-        <p>Le scanner a identifié l'indice. Voici le code à utiliser :</p>
-        
-        <!-- Le code récupéré est affiché ici fixement -->
-        <div id="revealed-code-display" class="code-revealed">XXXXXX</div>
-        
-        <p style="font-size: 0.9em; color: #888;">Saisissez ce code ci-dessous pour valider l'étape :</p>
+        <p>Indice identifié avec succès :</p>
+        <div id="revealed-code-display" class="code-revealed"></div>
         <input type="text" id="player-code-input" placeholder="ENTREZ LE CODE" maxlength="10">
         <br>
         <button class="btn" onclick="checkPlayerCode()">VALIDER L'ÉTAPE</button>
         <div id="validation-status" class="status-msg"></div>
     </div>
 
-    <!-- 3. ÉCRAN DE SUCCÈS FINAL -->
-    <div id="success-screen" class="ui-screen" style="display:none; background: #111;">
-        <h1 style="font-size: 4em; color: #2ecc71; margin: 0;">🎉</h1>
+    <!-- 3. ÉCRAN DE SUCCÈS -->
+    <div id="success-screen" class="ui-screen" style="display:none;">
+        <h1 style="font-size: 4em; color: #2ecc71;">🎉</h1>
         <h2 class="success">Étape Validée !</h2>
-        <p>Félicitations, inspecteur. Vous avez résolu cette énigme.</p>
-        <p>Consultez votre carnet de bord pour la suite...</p>
+        <p>Félicitations, énigme résolue.</p>
     </div>
 
-    <!-- 4. SCÈNE AR MindAR (Cachée tant que le GPS n'est pas validé) -->
-    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" style="display: none;">
+    <!-- 4. SCÈNE AR MINDAR -->
+    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" style="display: none;">
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
         
         <!-- Cible 0 -->
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            <!-- On affiche le code en RA pour que l'utilisateur le voie brièvement -->
-            <a-plane color="#000000" opacity="0.7" position="0 0 0" height="0.4" width="1.2" rotation="0 0 0">
-                <a-text value="V59A2K" align="center" color="#F1C40F" position="0 0 0.05" scale="0.7 0.7 0.7"></a-text>
+            <a-plane color="#000000" opacity="0.8" position="0 0 0" height="0.5" width="1.4">
+                <a-text value="SCAN EN COURS..." align="center" color="#F1C40F" position="0 0 0.05" scale="0.6 0.6 0.6"></a-text>
             </a-plane>
         </a-entity>
     </a-scene>
 
     <script>
-        // --- CONFIGURATION ---
-        const SECRET_CODE = "V59A2K"; // Le code attendu
+        const SECRET_CODE = "V59A2K"; 
 
-        // Coordonnées de test (à modifier pour le terrain)
         const TARGET_LAT = 45.5077421; 
         const TARGET_LNG = 4.7344563;
         const MAX_DISTANCE_METERS = 50; 
 
-        let arSystem = null; // Stockera le système MindAR
+        let arSystem = null;
 
-        // --- GÉOLOCALISATION ---
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
@@ -149,11 +130,12 @@
         function verifyLocation() {
             const statusMsg = document.getElementById("gps-status");
             statusMsg.innerText = "Recherche GPS...";
-            statusMsg.classList.remove('error');
+
+            // Mode test direct (si vous êtes chez vous, décommentez la ligne ci-dessous pour bypasser le GPS)
+            // startARScanner(); return;
 
             if (!navigator.geolocation) {
                 statusMsg.innerText = "GPS non supporté.";
-                statusMsg.classList.add('error');
                 return;
             }
 
@@ -162,85 +144,56 @@
                     const distance = calculateDistance(position.coords.latitude, position.coords.longitude, TARGET_LAT, TARGET_LNG);
 
                     if (distance <= MAX_DISTANCE_METERS) {
-                        statusMsg.innerText = "Position validée. Démarrage du scanner...";
-                        statusMsg.classList.add('success');
-                        
-                        // Petite pause pour laisser lire le message
+                        statusMsg.innerText = "Position validée ! Chargement de la caméra...";
                         setTimeout(startARScanner, 1000);
                     } else {
                         statusMsg.innerText = "Trop loin (" + Math.round(distance) + "m). Rapprochez-vous.";
-                        statusMsg.classList.add('error');
                     }
                 },
                 function(error) {
                     statusMsg.innerText = "Erreur GPS. Activez la localisation.";
-                    statusMsg.classList.add('error');
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
 
-        // --- GESTION DE LA RÉALITÉ AUGMENTÉE ---
         function startARScanner() {
-            // Masquer l'écran GPS
             document.getElementById("gps-screen").style.display = "none";
-            // Afficher et démarrer la scène AR
             const sceneEl = document.getElementById("ar-scene");
             sceneEl.style.display = "block";
             
-            // Attendre que A-Frame soit prêt pour démarrer MindAR
-            sceneEl.addEventListener('loaded', () => {
-                arSystem = sceneEl.systems["mindar-image-system"];
-                arSystem.start(); // Démarre manuellement la caméra
+            arSystem = sceneEl.systems["mindar-image-system"];
+            
+            // Démarrage sécurisé de MindAR
+            sceneEl.addEventListener('render-target-ready', () => {
+                arSystem.start();
             });
 
-            // Écouter l'événement "Cible Trouvée"
+            // Détection de la cible image
             const targetEl = document.getElementById("ar-target");
             targetEl.addEventListener("targetFound", event => {
-                console.log("Cible trouvée !");
-                
-                // On laisse le code s'afficher 1.5 secondes en RA pour l'effet "waouh"
-                setTimeout(freezeAndSwitchToValidation, 1500);
+                console.log("Cible reconnue !");
+                setTimeout(freezeAndSwitchToValidation, 1000);
             });
         }
 
-        // --- BASCULE VERS L'INTERFACE FIXE DE SAISIE ---
         function freezeAndSwitchToValidation() {
             if (!arSystem) return;
-
-            console.log("Bascule vers interface fixe.");
-
-            // 1. Arrêter MindAR et couper la caméra
-            arSystem.stop();
-            
-            // 2. Masquer la scène AR
+            arSystem.stop(); // Coupe la caméra
             document.getElementById("ar-scene").style.display = "none";
-
-            // 3. Afficher le code fixement dans l'écran de validation
             document.getElementById("revealed-code-display").innerText = SECRET_CODE;
-
-            // 4. Afficher l'écran de validation
             document.getElementById("validation-screen").style.display = "flex";
-            
-            // 5. Mettre le focus sur le champ de saisie (optionnel, dépend du navigateur)
-            document.getElementById("player-code-input").focus();
         }
 
-        // --- VÉRIFICATION DU CODE SAISI ---
         function checkPlayerCode() {
             const userInput = document.getElementById("player-code-input").value.trim().toUpperCase();
             const valStatus = document.getElementById("validation-status");
-            valStatus.classList.remove('error', 'success');
 
             if (userInput === SECRET_CODE) {
-                // Succès !
                 document.getElementById("validation-screen").style.display = "none";
                 document.getElementById("success-screen").style.display = "flex";
-            } else if (userInput === "") {
-                valStatus.innerText = "Veuillez entrer le code affiché ci-dessus.";
-                valStatus.classList.add('error');
             } else {
-                valStatus.innerText = "Code incorrect. Regardez bien l'indice.";
+                valStatus.innerText = "Code incorrect.";
                 valStatus.classList.add('error');
             }
         }
