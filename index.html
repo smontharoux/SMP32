@@ -95,7 +95,7 @@
     </div>
 
     <!-- 4. SCÈNE AR MINDAR -->
-    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" style="display: none;">
+    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes;" embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
         
         <!-- Cible 0 -->
