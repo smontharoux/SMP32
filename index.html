@@ -30,7 +30,6 @@
         #validation-screen {
             background: #1a1a1a;
             display: none;
-            /* Le halo lumineux jaune reste ici pour l'écran de validation */
             box-shadow: 0 0 50px 15px rgba(241, 196, 15, 0.7); 
         }
 
@@ -100,6 +99,7 @@
     <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 500;">
         
         <a-assets>
+            <!-- Utilisation de la ressource image locale pour la clé[cite: 1] -->
             <img id="key-img" src="image_0.png">
         </a-assets>
 
@@ -107,12 +107,15 @@
         
         <!-- Cible 0 -->
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            <!-- LE RECTANGLE NOIR EST SUPPRIMÉ -->
-            <!-- L'image de la clé est placée directement sur la cible -->
-            <a-image src="#key-img" position="0 0 0.01" scale="0.3 0.3 0.3"></a-image>
             
-            <!-- Le halo lumineux (light point) reste pour un effet magique -->
-            <a-light type="point" color="#F1C40F" intensity="1.5" distance="1" position="0 0 0.15"></a-light>
+            <!-- 1. Halo lumineux de fond (disque ou anneau semi-transparent lumineux) -->
+            <a-ring radius-inner="0.2" radius-outer="0.4" color="#F1C40F" opacity="0.5" position="0 0 0.005" material="shader: flat; transparent: true; blending: additive;"></a-ring>
+
+            <!-- 2. Image de la clé projetée sur un plan transparent pour éviter le carré opaque -->
+            <a-plane src="#key-img" position="0 0 0.02" width="0.5" height="0.5" material="transparent: true; alphaTest: 0.5;"></a-plane>
+
+            <!-- 3. Éclairage ponctuel pour accentuer l'effet lumineux -->
+            <a-light type="point" color="#F1C40F" intensity="2" distance="1.5" position="0 0 0.1"></a-light>
         </a-entity>
     </a-scene>
 
