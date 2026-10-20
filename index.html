@@ -55,4 +55,147 @@
         .btn:hover { background: #b7950b; }
 
         input[type="text"] {
-            padding: 15px; font
+            padding: 15px; font-size: 20px;
+            text-align: center; border: 2px solid #333;
+            border-radius: 8px; width: 80%; max-width: 300px;
+            text-transform: uppercase; letter-spacing: 2px;
+            background: #222; color: #fff; margin-bottom: 20px;
+        }
+
+        .status-msg { margin-top: 15px; font-size: 15px; color: #f39c12; font-weight: bold; }
+        .error { color: #e74c3c !important; }
+        .success { color: #2ecc71 !important; }
+        p { color: #ccc; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. ÉCRAN GPS -->
+    <div id="gps-screen" class="ui-screen">
+        <h2>🔒 Zone Sécurisée</h2>
+        <p>Validez votre position GPS pour lancer le scanner de terrain.</p>
+        <button class="btn" onclick="verifyLocation()">Valider ma position</button>
+        <div id="gps-status" class="status-msg"></div>
+    </div>
+
+    <!-- 2. ÉCRAN DE SAISIE FIXE -->
+    <div id="validation-screen" class="ui-screen">
+        <h2>🔍 Code Révélé</h2>
+        <p>Indice identifié avec succès :</p>
+        <div id="revealed-code-display" class="code-revealed"></div>
+        <input type="text" id="player-code-input" placeholder="ENTREZ LE CODE" maxlength="10">
+        <br>
+        <button class="btn" onclick="checkPlayerCode()">VALIDER L'ÉTAPE</button>
+        <div id="validation-status" class="status-msg"></div>
+    </div>
+
+    <!-- 3. ÉCRAN DE SUCCÈS -->
+    <div id="success-screen" class="ui-screen" style="display:none;">
+        <h1 style="font-size: 4em; color: #2ecc71;">🎉</h1>
+        <h2 class="success">Étape Validée !</h2>
+        <p>Félicitations, énigme résolue.</p>
+    </div>
+
+    <!-- 4. SCÈNE AR MINDAR -->
+    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 500;">
+        
+        <a-assets>
+            <img id="key-img" src="image_0.png">
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
+        
+        <!-- Cible 0 -->
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+            <a-plane color="#000000" opacity="0.8" position="0 0 0" height="0.5" width="1.4">
+                <!-- Remplacement du texte par l'image de la clé -->
+                <a-image src="#key-img" position="0 0 0.05" scale="0.3 0.3 0.3"></a-image>
+                <!-- Ajout d'une lumière point pour le halo lumineux en AR -->
+                <a-light type="point" color="#F1C40F" intensity="2" distance="1" position="0 0 0.2"></a-light>
+            </a-plane>
+        </a-entity>
+    </a-scene>
+
+    <script>
+        const SECRET_CODE = "V59A2K"; 
+        const TARGET_LAT = 45.5077421; 
+        const TARGET_LNG = 4.7344563;
+        const MAX_DISTANCE_METERS = 50; 
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+
+        function verifyLocation() {
+            const statusMsg = document.getElementById("gps-status");
+            statusMsg.innerText = "Recherche GPS...";
+
+            // ASTUCE DE TEST RAPIDE : Décommentez la ligne suivante si vous voulez tester directement chez vous sans bouger
+            // startARScanner(); return;
+
+            if (!navigator.geolocation) {
+                statusMsg.innerText = "GPS non supporté.";
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const distance = calculateDistance(position.coords.latitude, position.coords.longitude, TARGET_LAT, TARGET_LNG);
+
+                    if (distance <= MAX_DISTANCE_METERS) {
+                        statusMsg.innerText = "Position validée ! Chargement de la caméra...";
+                        setTimeout(startARScanner, 1000);
+                    } else {
+                        statusMsg.innerText = "Trop loin (" + Math.round(distance) + "m). Rapprochez-vous.";
+                    }
+                },
+                function(error) {
+                    statusMsg.innerText = "Erreur GPS. Activez la localisation.";
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        function startARScanner() {
+            // Masquer l'écran GPS et afficher la scène AR nativement
+            document.getElementById("gps-screen").style.display = "none";
+            document.getElementById("ar-scene").style.display = "block";
+
+            // Écouter la reconnaissance de la cible image
+            const targetEl = document.getElementById("ar-target");
+            targetEl.addEventListener("targetFound", event => {
+                console.log("Cible reconnue !");
+                setTimeout(freezeAndSwitchToValidation, 1000);
+            });
+        }
+
+        function freezeAndSwitchToValidation() {
+            // Masquer la scène AR pour couper la caméra et basculer sur l'écran fixe
+            document.getElementById("ar-scene").style.display = "none";
+            document.getElementById("revealed-code-display").innerText = SECRET_CODE;
+            document.getElementById("validation-screen").style.display = "flex";
+        }
+
+        function checkPlayerCode() {
+            const userInput = document.getElementById("player-code-input").value.trim().toUpperCase();
+            const valStatus = document.getElementById("validation-status");
+
+            if (userInput === SECRET_CODE) {
+                document.getElementById("validation-screen").style.display = "none";
+                document.getElementById("success-screen").style.display = "flex";
+            } else {
+                valStatus.innerText = "Code incorrect.";
+                valStatus.classList.add('error');
+            }
+        }
+    </script>
+</body>
+</html>
